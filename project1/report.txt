@@ -1,0 +1,50 @@
+author: Mae Kyaw San @mae-ks
+link: https://github.com/mae-ks/os22-maeks/tree/main/project1
+
+< – Design Choices – >
+
+Shell prompt was edited to also print out the current working directory on line 33.
+
+– > Tokenizing
+To tokenize command line input, the ‘strtok’ function was used with the command line string and the delimiters variable as a parameter. The ‘tokens’ array was used to contain these split strings.
+While iterating through the command line string, every group of characters can either start with a ‘$’ character or not. The ‘strncmp’ function was used to check if each token’s first character was a ‘$’. If this is true, tokens array at that index will be assigned the token’s environment variable’s value. Eg. $PWD = “/home/codio/workspace”. Otherwise tokens array at that index will be assigned the token’s original string.
+For efficiency’s sake, the ‘last’ variable and ‘lastindex’ variable were assigned values in this loop. This while loop ends when the current token no longer has a value, therefore will hold the last possible value and its index respectively.
+
+– > Built-In Commands
+
+PWD
+‘strcmp’ function is used to check if the first word in the command line string is ‘pwd’. If it is, ‘getcwd’ function is used to assign the current working directory to a new variable. If the variable is not NULL (if path is available), then the current working directory is printed.
+
+CD
+‘strcmp’ function is used to check if the first word in the command line string is ‘cd’. If it is, ‘chdir’ function is used to switch directory to the path specified in the second token, which should be at index 1 in the ‘tokens’ array.
+
+ECHO
+‘strcmp’ function is used to check if the first word in the command line string is ‘echo’. If it is, each value after the ‘echo’ command will be printed by iterating over the ‘tokens’ array. If there is a ‘$’ character in front of the string and it is an existing environment variable, then the respective value will already be in the ‘tokens’ array and will be printed. Otherwise, the original string is printed.
+
+EXIT
+‘strcmp’ function is used to check if the first word in the command line string is ‘exit’. If it is, the ‘exit’ function will be called.
+
+ENV
+‘strcmp’ function is used to check if the first word in the command line string is ‘env’. If it is, the next token can either be NULL or have a value. If the next token is NULL, the extern char **environ was used to access the global environment variables array and a for loop is used to print all the variables out. If the next token has a value and exists as an environment variable, then the path’s environment value is printed out.
+
+SETENV
+‘strcmp’ function is used to check if the first word in the command line string is ‘setenv’. If it is and there is a value specified in the next token, this token will be split at the ‘=’ character. The ‘strtok’ function is used to assign the variable name to the first token, and the value to be assigned to this variable to the second token. Then the ‘setenv’ function is used to overwrite the environment variable’s value to the new value.
+
+– > Process Forking
+If the command specified in the command line string is not a built-in function, then we want to fork a new process and let the actual C program handle this command. This can be done using the ‘execvp’ function, and if it fails, it will return -1, so the execution of this function is saved in the status variable to be able to print the correct error output.
+
+If a process should run in the background, the command line will have an ‘&’ character at the end. This is checked using the ‘strcmp’ function comparing the ‘&’ character and the ‘last’ variable initialized at the start of this program containing the last viable value in the command line. The resulting boolean value is then assigned to the ‘runinbackground’ variable. If the ‘&’ is at the end, then we can simply assign the value at the last index of the ‘tokens’ array to NULL and let the ‘execvp’ function carry out the command line command and its argument, since we are already in the child process.
+
+The ‘runinbackground’ variable is then used to check whether the parent process should wait or bring the command line prompt back.
+
+To terminate the foreground process whether by pressing Ctrl-C or if the process has not yet been completed over a specified time period, two signals were implemented checking for SIGINT and SIGALRM. The alarm signal works by starting right before the ‘execvp’ function is called. If the process has not completed during the time given, the child process will be killed.
+
+
+Documentation
+strtok() → https://www.tutorialgateway.org/c-strtok-function/
+chdir() → https://www.geeksforgeeks.org/chdir-in-c-language-with-examples/
+execvp() → https://www.digitalocean.com/community/tutorials/execvp-function-c-plus-plus
+strcmp() → https://www.tutorialspoint.com/c_standard_library/c_function_strcmp.htm
+getcwd() → https://www.ibm.com/docs/en/zos/2.3.0?topic=functions-getcwd-get-path-name-working-directory
+getenv() → https://www.tutorialspoint.com/c_standard_library/c_function_getenv.htm
+setenv() → https://www.ibm.com/docs/en/zos/2.4.0?topic=functions-setenv-add-delete-change-environment-variables
